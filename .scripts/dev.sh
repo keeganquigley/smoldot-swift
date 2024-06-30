@@ -4,7 +4,7 @@ source ".scripts/functions.sh"
 
 set -e
 
-PACKAGE_VERSION=0.1.0
+PACKAGE_VERSION=999.0.0
 
 env::setup
 env::build_configuration $1
@@ -19,8 +19,9 @@ rust::build
 build::lipo
 build::xcframework
 
-package::use_remote_binary_target
-package::remove_local_artifact
+#package::use_remote_binary_target
+package::use_local_binary_target
 
-post_build::compress
+#post_build::compress
+post_build::copy_framework_to_package
 post_build::success

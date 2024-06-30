@@ -17,7 +17,7 @@ log::info() {
 }
 
 env::setup() {
-    log::message "Settig up env"
+    log::message "Setting up env"
     if [ -z $PACKAGE_VERSION ]; then
         log::error 'Must specify $PACKAGE_VERSION'
         exit -1
@@ -29,10 +29,14 @@ env::setup() {
     log::info "ROOT_DIRECTORY=$ROOT_DIRECTORY"
     export BUILD_DIRECTORY=${BUILD_DIRECTORY:-"$ROOT_DIRECTORY/.build/smoldot-framework"}
     log::info "BUILD_DIRECTORY=$BUILD_DIRECTORY"
-    export FFI_DIRECTORY=${FFI_DIRECTORY:-"$BUILD_DIRECTORY/smoldot-c-ffi"}
-    log::info "FFI_DIRECTORY=$FFI_DIRECTORY"
     export RUST_TOOLCHAIN=${RUST_TOOLCHAIN:-'nightly'}
-    log::info "RUST_TOOLCHAIN=$RUST_TOOLCHAIN"   
+    log::info "RUST_TOOLCHAIN=$RUST_TOOLCHAIN"
+    
+    export CHECKOUTS_DIRECTORY=${CHECKOUTS_DIRECTORY:-"$ROOT_DIRECTORY/.build/checkouts"}
+    log::info "CHECKOUTS_DIRECTORY=$CHECKOUTS_DIRECTORY"
+    export FFI_DIRECTORY=${FFI_DIRECTORY:-"$CHECKOUTS_DIRECTORY/smoldot-c-ffi"}
+    log::info "FFI_DIRECTORY=$FFI_DIRECTORY"
+
 }
 
 env::build_configuration() {
@@ -177,13 +181,47 @@ post_build::compress() {
     fi
 }
 
-post_build::copy_to_package() {
-    log::message "Copy xcframework to package"
-    cp -r $BUILD_DIRECTORY/build/$PACKAGE_VERSION/$BUILD_CONFIG/smoldot.xcframework $ROOT_DIRECTORY/Libs/
+post_build::copy_framework_to_package() {
+    log::message "Copy framework artifact to package"
+    mkdir -p $ROOT_DIRECTORY/Libs/smoldot.xcframework
+    cp -r $BUILD_DIRECTORY/build/$PACKAGE_VERSION/$BUILD_CONFIG/smoldot.xcframework/. $ROOT_DIRECTORY/Libs/smoldot.xcframework
 }
 
 post_build::success() {
     log::success "▸ BUILD SUCCESSFUL!"
     log::success ''
-    log::success "Built artifacts can be found at $BUILD_DIRECTORY/build/$PACKAGE_VERSION/$BUILD_CONFIG"
+    if [ $BUILD_CONFIG = "release" ]; then
+        log::success "Built artifacts can be found at $BUILD_DIRECTORY/build/$PACKAGE_VERSION/$BUILD_CONFIG"
+    fi
+}
+
+package::use_local_binary_target() {
+    # assertion: only one binary target
+    log::message "Modify Package.swift"
+    log::info "Comment out remote binary target"
+    if ! grep -q '\/\*.binaryTarget.*checksum.*\*\/' $ROOT_DIRECTORY/Package.swift; then # is using remote
+        sed -i '' 's/.binaryTarget.*checksum.*/\/\*&\*\//' $ROOT_DIRECTORY/Package.swift # comment out remote
+    fi
+    
+    log::info "Uncommment local binary target"
+    sed -i '' 's/\/\*\(.binaryTarget.*path:.*),\)\*\//\1/' $ROOT_DIRECTORY/Package.swift # uncomment local
+}
+
+package::use_remote_binary_target() {
+    # assertion: only one binary target
+    log::message "Modify Package.swift"
+    log::info "Comment out local binary target"
+    if ! grep -q '\/\*.binaryTarget.*path.*\*\/' $ROOT_DIRECTORY/Package.swift; then    # is using local
+        sed -i '' 's/.binaryTarget.*path.*),/\/\*&\*\//' $ROOT_DIRECTORY/Package.swift  # comment out local
+    fi
+    
+    log::info "Uncommment remote binary target"
+    sed -i '' 's/\/\*\(.binaryTarget.*checksum:.*),\)\*\//\1/' $ROOT_DIRECTORY/Package.swift # uncomment remote
+}
+
+package::remove_local_artifact() {
+    log::message "Remove local framework artifact from package"
+    if [ -d $ROOT_DIRECTORY/Libs ]; then
+        rm -r $ROOT_DIRECTORY/Libs
+    fi
 }
