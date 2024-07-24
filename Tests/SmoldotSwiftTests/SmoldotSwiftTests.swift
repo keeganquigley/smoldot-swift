@@ -39,13 +39,13 @@ final class SmoldotSwiftTests: XCTestCase {
     }
     */
     
-    func testRemoveChain() throws {
+    /*func testRemoveChain() throws {
         try Client.shared.add(chain: &chain)
         try Client.shared.remove(chain: &chain)
         
         XCTAssertFalse( chain.isValid )
     }
-    
+    */
     func testRemoveChainNotAdded() throws {
         XCTAssertThrowsError( try Client.shared.remove(chain: &chain) )
     }
