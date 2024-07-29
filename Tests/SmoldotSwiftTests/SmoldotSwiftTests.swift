@@ -23,7 +23,7 @@ final class SmoldotSwiftTests: XCTestCase {
         XCTAssertThrowsError( try Client.shared.add(chain: &chain) )
     }
     
-    /*
+    
     func testAddChainRemoveChainMemoryPerformance() async throws {
         self.measure(metrics: [XCTMemoryMetric()]) {
             let exp = expectation(description: "Finished")
@@ -37,7 +37,7 @@ final class SmoldotSwiftTests: XCTestCase {
             wait(for: [exp], timeout: 1_000_000_000 * 30)
         }
     }
-    */
+    
     
     /*func testRemoveChain() throws {
         try Client.shared.add(chain: &chain)
